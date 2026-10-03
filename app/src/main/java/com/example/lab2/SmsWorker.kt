@@ -25,8 +25,7 @@ class SmsWorker(
     companion object {
         private const val TAG = "SMS_WORKER_TAG"
 
-        // Адрес сервера. 10.0.2.2 — это localhost хост-машины из эмулятора.
-        // Для реального устройства укажи IP компьютера в локальной сети.
+        // localhost хост-машины из эмулятора.
         private const val SERVER_URL = "http://10.0.2.2:5000/sms"
 
         // Ключ для SharedPreferences, где храним id последнего отправленного SMS
@@ -127,6 +126,7 @@ class SmsWorker(
         val df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val root = JSONObject()
         root.put("device_time", df.format(Date()))
+
         val arr = JSONArray()
         for (s in list) {
             val o = JSONObject()
@@ -134,11 +134,22 @@ class SmsWorker(
             o.put("address", s.address)
             o.put("body", s.body)
             o.put("date", df.format(Date(s.date)))
-            o.put("type", s.type) // 1=INBOX, 2=SENT
+            // вместо числа — читаемый тип
+            o.put("type", typeToString(s.type))
             arr.put(o)
         }
         root.put("messages", arr)
         return root.toString()
+    }
+
+    private fun typeToString(type: Int): String = when (type) {
+        Telephony.Sms.MESSAGE_TYPE_INBOX   -> "INBOX"
+        Telephony.Sms.MESSAGE_TYPE_SENT    -> "SENT"
+        Telephony.Sms.MESSAGE_TYPE_DRAFT   -> "DRAFT"
+        Telephony.Sms.MESSAGE_TYPE_OUTBOX  -> "OUTBOX"
+        Telephony.Sms.MESSAGE_TYPE_FAILED  -> "FAILED"
+        Telephony.Sms.MESSAGE_TYPE_QUEUED  -> "QUEUED"
+        else -> "UNKNOWN($type)"
     }
 
     // ---------- Отправка на сервер ----------
